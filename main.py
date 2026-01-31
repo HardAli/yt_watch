@@ -6,7 +6,7 @@ import re
 import sqlite3
 import sys
 import time
-import logging
+import loggingtweewttew
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
