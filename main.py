@@ -30,6 +30,10 @@ logging.basicConfig(
 )
 
 
+class TokenLimitReached(RuntimeError):
+    pass
+
+
 # ----------------------------
 # Models
 # ----------------------------
@@ -314,11 +318,18 @@ class DB:
 # YouTube Client (quota-friendly)
 # ----------------------------
 class YouTubeClient:
-    def __init__(self, api_key: str):
+    def __init__(self, api_key: str, *, token_limit: int = 9_999):
         self.yt = build("youtube", "v3", developerKey=api_key, cache_discovery=False)
+        self.token_limit = token_limit
+        self.tokens_used = 0
 
     def execute(self, req, *, retries: int = 3):
         # googleapiclient умеет num_retries
+        if self.tokens_used >= self.token_limit:
+            raise TokenLimitReached(
+                f"Достигнут лимит токенов: {self.tokens_used}/{self.token_limit}."
+            )
+        self.tokens_used += 1
         return req.execute(num_retries=retries)
 
     def resolve_channel(self, source: str) -> tuple[str, str, str]:
@@ -668,13 +679,17 @@ def main() -> int:
     db = DB(db_path)
 
     try:
-        for idx, source in enumerate(channels, 1):
-            try:
-                sync_channel(cfg=cfg, db=db, yt=yt, source=source)
-                # маленькая пауза для “вежливости” к API
-                time.sleep(0.05)
-            except (HttpError, ValueError) as e:
-                LOG.error("FAIL [%d/%d] %s | %s", idx, len(channels), source, e)
+        try:
+            for idx, source in enumerate(channels, 1):
+                try:
+                    sync_channel(cfg=cfg, db=db, yt=yt, source=source)
+                    # маленькая пауза для “вежливости” к API
+                    time.sleep(0.05)
+                except (HttpError, ValueError) as e:
+                    LOG.error("FAIL [%d/%d] %s | %s", idx, len(channels), source, e)
+        except TokenLimitReached as e:
+            LOG.warning("Остановка по лимиту токенов: %s", e)
+            return 0
 
         out_xlsx = base / cfg.output_xlsx
         export_xlsx(
