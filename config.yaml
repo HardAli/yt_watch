@@ -1,0 +1,19 @@
+api_key_env: YOUTUBE_API_KEY
+
+# сколько последних загрузок смотреть на канале за один проход
+scan_limit_per_channel: 200
+
+# сколько выдать в Excel на каждый канал
+take_last_videos: 5
+take_last_shorts: 5
+
+# классификация shorts:
+shorts_max_seconds: 180      # Shorts до 3 минут
+require_hashtag_shorts: false # если true — shorts только при наличии #shorts в title/desc/tags
+
+# статистику просмотров/лайков обновлять только у "свежих" роликов
+refresh_stats_days: 30
+
+# Excel
+output_xlsx: monitor.xlsx
+timezone: UTC
